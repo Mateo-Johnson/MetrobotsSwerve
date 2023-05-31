@@ -35,7 +35,7 @@ public class SwerveDrive {
 
     public void teleopPeriodic() {
         // Get the joystick inputs
-        double forwardSpeed = -controller.getLeftY(); // Negative because the joystick is inverted
+        double forwardSpeed = controller.getLeftY(); // Not negative because the joystick isn't inverted
         double strafeSpeed = controller.getLeftX();
         double rotationSpeedX = controller.getRightX();
         double rotationSpeedY = controller.getRightY();
