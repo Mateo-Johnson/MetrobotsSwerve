@@ -3,13 +3,14 @@ package frc.robot.Drivetrain.Commands;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.CANSparkMaxLowLevel;
 import edu.wpi.first.wpilibj.XboxController;
+import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 
 public class SwerveDrive {
     private SwerveModule frontLeftModule;
     private SwerveModule frontRightModule;
     private SwerveModule rearLeftModule;
     private SwerveModule rearRightModule;
-    private XboxController controller;
+    private final static CommandXboxController primaryDriver = new CommandXboxController(0);
 
     public SwerveDrive() {
         // Initialize the SparkMAX controllers for each swerve module
@@ -29,16 +30,14 @@ public class SwerveDrive {
         CANSparkMax rearRightMotor2 = new CANSparkMax(8, CANSparkMaxLowLevel.MotorType.kBrushless);
         rearRightModule = new SwerveModule(rearRightMotor1, rearRightMotor2);
 
-        // Initialize the Xbox controller
-        controller = new XboxController(0);
     }
 
     public void teleopPeriodic() {
         // Get the joystick inputs
-        double forwardSpeed = controller.getLeftY(); // Not negative because the joystick isn't inverted
-        double strafeSpeed = controller.getLeftX();
-        double rotationSpeedX = controller.getRightX();
-        double rotationSpeedY = controller.getRightY();
+        double forwardSpeed = primaryDriver.getLeftY(); // Not negative because the joystick isn't inverted
+        double strafeSpeed = primaryDriver.getLeftX();
+        double rotationSpeedX = primaryDriver.getRightX();
+        double rotationSpeedY = primaryDriver.getRightY();
 
         // Calculate the desired speeds and angles for each module based on the joystick inputs
         double frontLeftSpeed = forwardSpeed - strafeSpeed - rotationSpeedY;
@@ -82,16 +81,31 @@ class SwerveModule {
     public void setSpeedAndAngle(double speed, double angle) {
         // Normalize the speed within the range [-1.0, 1.0]
         speed = Math.max(-MAX_SPEED, Math.min(MAX_SPEED, speed));
-
+    
         // Calculate the individual motor speeds based on the desired speed and angle
         double motor1Speed = speed * Math.cos(Math.toRadians(angle));
         double motor2Speed = speed * Math.sin(Math.toRadians(angle));
-
+    
         // Apply fine-tuning adjustments
         double fineTuneFactor = calculateFineTuneFactor(speed);
         motor1Speed *= fineTuneFactor;
         motor2Speed *= fineTuneFactor;
-
+    
+        // Determine which motor to invert based on movement direction
+        if (speed >= 0.0) {
+            if (angle >= 0.0 && angle < 90.0) {
+                motor1Speed *= -1.0; // Invert motor1 when moving forward diagonally to the right
+            } else if (angle >= 90.0 && angle < 180.0) {
+                motor2Speed *= -1.0; // Invert motor2 when moving forward diagonally to the left
+            }
+        } else {
+            if (angle >= 0.0 && angle < 90.0) {
+                motor2Speed *= -1.0; // Invert motor2 when moving backward diagonally to the right
+            } else if (angle >= 90.0 && angle < 180.0) {
+                motor1Speed *= -1.0; // Invert motor1 when moving backward diagonally to the left
+            }
+        }
+    
         // Set the motor speeds
         motor1.set(motor1Speed);
         motor2.set(motor2Speed);
